@@ -16,6 +16,7 @@ using AutoRest.CSharp.LoadBalanced.Strategies;
 using AutoRest.CSharp.LoadBalanced.Templates.Rest.Client;
 using AutoRest.CSharp.LoadBalanced.Templates.Rest.Common;
 using AutoRest.Extensions;
+using RazorLight;
 
 namespace AutoRest.CSharp.LoadBalanced
 {
@@ -43,7 +44,7 @@ namespace AutoRest.CSharp.LoadBalanced
                 RootNameSpace = codeModel.Namespace
             };
 
-            var metricsTemplate = new MetricsTemplate {Model = methods};
+            var metricsTemplate = new MetricsTemplate { Model = methods };
             var metricsFilePath = "Metrics.cs";
             project.FilePaths.Add(metricsFilePath);
             await Write(metricsTemplate, metricsFilePath);
@@ -64,12 +65,10 @@ namespace AutoRest.CSharp.LoadBalanced
             codeModel.Usings = usings.Where(u => !string.IsNullOrWhiteSpace(u)).Distinct();
 
             // Service client
-            var serviceClientTemplate = new ServiceClientTemplate { Model = codeModel };
-
             var clientPath = $"{codeModel.Name}{ImplementationFileExtension}";
             project.FilePaths.Add(clientPath);
 
-            await Write(serviceClientTemplate, clientPath);
+            await WriteWithRazorLight(codeModel);
 
             // Service client interface
             var serviceClientInterfaceTemplate = new ServiceClientInterfaceTemplate { Model = codeModel };
@@ -79,7 +78,7 @@ namespace AutoRest.CSharp.LoadBalanced
 
             await Write(serviceClientInterfaceTemplate, interfacePath);
 
-            var apiBaseTemplate = new ApiBaseTemplate {Model = codeModel};
+            var apiBaseTemplate = new ApiBaseTemplate { Model = codeModel };
             var apiBaseCsPath = "ApiBase.cs";
             project.FilePaths.Add(apiBaseCsPath);
             await Write(apiBaseTemplate, apiBaseCsPath);
@@ -87,7 +86,7 @@ namespace AutoRest.CSharp.LoadBalanced
             // operations
             foreach (var methodGroup1 in codeModel.Operations)
             {
-                var methodGroup = (MethodGroupCs) methodGroup1;
+                var methodGroup = (MethodGroupCs)methodGroup1;
 
                 if (!methodGroup.Name.IsNullOrEmpty())
                 {
@@ -117,7 +116,7 @@ namespace AutoRest.CSharp.LoadBalanced
                     continue;
                 }
 
-                var modelTemplate = new ModelTemplate{ Model = model };
+                var modelTemplate = new ModelTemplate { Model = model };
                 var modelPath = Path.Combine(Settings.Instance.ModelsName, $"{model.Name}{ImplementationFileExtension}");
                 project.FilePaths.Add(modelPath);
 
@@ -144,7 +143,7 @@ namespace AutoRest.CSharp.LoadBalanced
 
                 await Write(exceptionTemplate, exceptionFilePath);
             }
-            
+
             // Xml Serialization
             if (codeModel.ShouldGenerateXmlSerialization)
             {
@@ -155,13 +154,24 @@ namespace AutoRest.CSharp.LoadBalanced
 
                 await Write(xmlSerializationTemplate, xmlSerializationPath);
             }
-            
+
         }
 
         private async Task GenerateRestCode(CodeModelCs codeModel)
         {
             Logger.Instance.Log(Category.Info, "Defaulting to generate client side Code");
             await GenerateClientSideCode(codeModel);
+        }
+
+
+        public async Task WriteWithRazorLight(CodeModelCs model)
+        {
+            var engine = new RazorLightEngineBuilder()
+                .UseFilesystemProject("D:/AgodaGit/autorest/src/generator/AutoRest.CSharp.LoadBalanced/Templates")
+                .UseMemoryCachingProvider()
+                .Build();
+
+            var result = await engine.CompileTemplateAsync("Rest/Client/ServiceClientTemplate.cshtml");
         }
 
         /// <summary>

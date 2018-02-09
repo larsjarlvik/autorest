@@ -204,7 +204,7 @@ namespace AutoRest.Core
         protected virtual string Header(string prefix)
         {
             var comment = WrapComment(prefix, Settings.Header);
-            if(!string.IsNullOrEmpty(comment))
+            if (!string.IsNullOrEmpty(comment))
             {
                 return comment + Environment.NewLine;
             }
@@ -270,5 +270,8 @@ namespace AutoRest.Core
 
             return sb.ToString();
         }
+
+        protected void BeginContext(int a, int b, bool c) { }
+        protected void EndContext() { }
     }
 }
